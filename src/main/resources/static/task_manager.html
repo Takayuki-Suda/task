@@ -295,20 +295,20 @@
         const taskItem = document.createElement("div");
         taskItem.className = "task";
         taskItem.innerHTML = `
-          <div>
-            <strong>${task.description}</strong> - ${
+        <div>
+            <strong>${task.id}: ${task.description}</strong> - ${
           task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "未設定"
         }
-          </div>
-          <div>
+        </div>
+        <div>
             <button class="btn btn-success btn-sm" onclick="editTask(${
               task.id
             })">編集</button>
             <button class="btn btn-danger btn-sm" onclick="deleteTask(${
               task.id
             })">削除</button>
-          </div>
-        `;
+        </div>
+    `;
         taskList.appendChild(taskItem);
       }
 
@@ -316,7 +316,12 @@
         taskList.innerHTML = "";
         const startIndex = (currentPage - 1) * tasksPerPage;
         const endIndex = startIndex + tasksPerPage;
-        const paginatedTasks = tasks.slice(startIndex, endIndex);
+
+        // タスクを逆順に取得し、ページング
+        const paginatedTasks = tasks
+          .slice()
+          .reverse()
+          .slice(startIndex, endIndex);
 
         paginatedTasks.forEach(displayTask);
 
