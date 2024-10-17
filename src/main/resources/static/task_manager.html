@@ -83,6 +83,75 @@
     <div class="container">
       <h1>タスク管理アプリ</h1>
 
+      <!-- 新規作成ボタン -->
+      <button
+        class="btn btn-primary mb-3"
+        id="newTaskButton"
+        data-toggle="modal"
+        data-target="#taskModal"
+      >
+        新規作成
+      </button>
+
+      <!-- モーダル -->
+      <div
+        class="modal fade"
+        id="taskModal"
+        tabindex="-1"
+        aria-labelledby="taskModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="taskModalLabel">
+                新しいタスクを追加
+              </h5>
+              <button
+                type="button"
+                class="close"
+                data-dismiss="modal"
+                aria-label="Close"
+              >
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label for="taskInputModal">タスク名</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="taskInputModal"
+                  placeholder="タスク名を入力"
+                />
+              </div>
+              <div class="form-group">
+                <label for="dateInputModal">日付</label>
+                <input type="date" class="form-control" id="dateInputModal" />
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-dismiss="modal"
+              >
+                閉じる
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary"
+                id="addTaskButton"
+                onclick="addTaskFromModal()"
+              >
+                タスクを追加
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ダークモード切替ボタン -->
       <button
         class="btn btn-secondary mb-3"
@@ -99,7 +168,6 @@
           id="searchInput"
           class="form-control"
           placeholder="タスクを検索"
-          oninput="searchTasks()"
           style="width: 34%"
         />
         <div class="input-group-append">
@@ -110,21 +178,9 @@
           >
             検索する
           </button>
-        </div>
-      </div>
-
-      <!-- タスク追加ボックス -->
-      <div class="input-group mb-3">
-        <input
-          type="text"
-          id="taskInput"
-          class="form-control"
-          placeholder="新しいタスクを入力"
-        />
-        <input type="date" id="dateInput" class="form-control mx-2" />
-        <div class="input-group-append">
-          <button class="btn btn-primary" id="addButton" onclick="addTask()">
-            タスクを追加
+          <!-- リセットボタンを追加 -->
+          <button class="btn btn-secondary" id="reset" onclick="resetSearch()">
+            リセット
           </button>
         </div>
       </div>
@@ -141,32 +197,26 @@
 
     <script>
       const taskList = document.getElementById("taskList");
-      const taskInput = document.getElementById("taskInput");
-      const dateInput = document.getElementById("dateInput");
       const pagination = document.getElementById("pagination");
       const currentPageIndicator = document.getElementById(
         "currentPageIndicator"
       );
-      const taskCount = document.getElementById("taskCount"); // タスク総数を表示する要素
-      let tasks = []; // 全タスクを保持する配列
+      const taskCount = document.getElementById("taskCount");
+      let tasks = [];
       let currentPage = 1;
-      const tasksPerPage = 4; // 1ページに表示するタスク数
+      const tasksPerPage = 4;
+      let editingTaskId = null;
 
-      let editingTaskId = null; // 編集中のタスクID
-
-      // ページネーションを表示する関数
       function renderPagination(totalPages) {
         pagination.innerHTML = "";
-        const maxVisiblePages = 5; // 最大表示ページ数
+        const maxVisiblePages = 5;
 
-        // 最初のページボタン
         const firstButton = document.createElement("button");
         firstButton.innerText = "«";
         firstButton.classList.add("btn", "btn-outline-primary");
         firstButton.onclick = () => changePage(1);
         pagination.appendChild(firstButton);
 
-        // 中間のページボタン
         const startPage = Math.max(
           1,
           currentPage - Math.floor(maxVisiblePages / 2)
@@ -183,7 +233,6 @@
           pagination.appendChild(button);
         }
 
-        // 最後のページボタン
         const lastButton = document.createElement("button");
         lastButton.innerText = "»";
         lastButton.classList.add("btn", "btn-outline-primary");
@@ -191,33 +240,28 @@
         pagination.appendChild(lastButton);
       }
 
-      // 現在のページを表示する関数
       function updateCurrentPageIndicator() {
         currentPageIndicator.innerText = `現在のページ：${currentPage}`;
       }
 
-      // タスク総数を表示する関数
       function updateTaskCount() {
         taskCount.innerText = `タスクの総数：${tasks.length}件`;
       }
 
-      // ページを変更する関数
       function changePage(page) {
         currentPage = page;
         loadTasks();
       }
 
-      // タスクを追加または更新する関数
-      function addTask() {
-        const taskDescription = taskInput.value.trim(); // 空白を除去
-        const taskDate = dateInput.value; // 日付を取得
+      function addTaskFromModal() {
+        const taskDescription = document
+          .getElementById("taskInputModal")
+          .value.trim();
+        const taskDate = document.getElementById("dateInputModal").value;
 
         if (taskDescription) {
-          const method = editingTaskId ? "PUT" : "POST"; // 編集中かどうかでメソッドを切り替え
-          const url = editingTaskId ? `/tasks/${editingTaskId}` : "/tasks";
-
-          fetch(url, {
-            method: method,
+          fetch("/tasks", {
+            method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
@@ -229,21 +273,16 @@
           })
             .then((response) => {
               if (!response.ok) {
-                throw new Error("タスクの更新に失敗しました");
+                throw new Error("タスクの追加に失敗しました");
               }
               return response.json();
             })
             .then((task) => {
-              if (editingTaskId) {
-                updateTaskInList(task);
-                editingTaskId = null;
-              } else {
-                tasks.push(task); // 新規タスクを全タスクに追加
-                loadTasks();
-              }
-              taskInput.value = "";
-              dateInput.value = "";
-              document.getElementById("addButton").innerText = "タスクを追加";
+              tasks.push(task);
+              loadTasks();
+              document.getElementById("taskInputModal").value = "";
+              document.getElementById("dateInputModal").value = "";
+              $("#taskModal").modal("hide"); // モーダルを閉じる
             })
             .catch((error) => {
               console.error("Error:", error);
@@ -252,59 +291,99 @@
         }
       }
 
-      // タスクを表示する関数
       function displayTask(task) {
-        const taskDiv = document.createElement("div");
-        taskDiv.classList.add("task", "list-group-item");
-        taskDiv.setAttribute("data-id", task.id);
-        taskDiv.innerHTML = `
-          <span>${task.description} - ${
-          task.dueDate
-            ? new Date(task.dueDate).toLocaleDateString()
-            : "日付未設定"
-        }</span>
+        const taskItem = document.createElement("div");
+        taskItem.className = "task";
+        taskItem.innerHTML = `
           <div>
-              <button class="btn btn-warning btn-sm" onclick="editTask(${
-                task.id
-              }, '${task.description}', '${task.dueDate}')">編集</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteTask(${
-                task.id
-              })">削除</button>
+            <strong>${task.description}</strong> - ${
+          task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "未設定"
+        }
+          </div>
+          <div>
+            <button class="btn btn-success btn-sm" onclick="editTask(${
+              task.id
+            })">編集</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteTask(${
+              task.id
+            })">削除</button>
           </div>
         `;
-        taskList.appendChild(taskDiv);
+        taskList.appendChild(taskItem);
       }
 
-      // タスクを更新する関数
-      function updateTaskInList(task) {
-        const taskDiv = taskList.querySelector(`.task[data-id='${task.id}']`);
-        if (taskDiv) {
-          taskDiv.querySelector("span").innerText = `${task.description} - ${
-            task.dueDate
-              ? new Date(task.dueDate).toLocaleDateString()
-              : "日付未設定"
-          }`; // 更新された内容を表示
-        }
+      function loadTasks() {
+        taskList.innerHTML = "";
+        const startIndex = (currentPage - 1) * tasksPerPage;
+        const endIndex = startIndex + tasksPerPage;
+        const paginatedTasks = tasks.slice(startIndex, endIndex);
+
+        paginatedTasks.forEach(displayTask);
+
+        const totalPages = Math.ceil(tasks.length / tasksPerPage);
+        renderPagination(totalPages);
+        updateCurrentPageIndicator();
+        updateTaskCount();
       }
 
-      // タスクを編集する関数
-      function editTask(id, description, dueDate) {
-        editingTaskId = id;
-        taskInput.value = description;
-        dateInput.value = dueDate;
-        document.getElementById("addButton").innerText = "タスクを更新";
+      function toggleDarkMode() {
+        document.body.classList.toggle("dark-mode");
+        document.querySelectorAll(".task").forEach((task) => {
+          task.classList.toggle("dark-mode");
+        });
+        document.querySelectorAll("input.form-control").forEach((input) => {
+          input.classList.toggle("dark-mode");
+        });
       }
 
-      // タスクを削除する関数
-      function deleteTask(id) {
-        fetch(`/tasks/${id}`, {
+      let allTasks = []; // すべてのタスクを保持する配列
+
+      // 初回ロード時にタスクを取得
+      fetch("/tasks")
+        .then((response) => response.json())
+        .then((data) => {
+          tasks = data;
+          allTasks = [...data]; // すべてのタスクを保持
+          loadTasks();
+        })
+        .catch((error) => console.error("Error:", error));
+
+      function searchTasks() {
+        const searchTerm = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+
+        // 検索ボックスが空の場合は元のタスクリストを使用
+        tasks = searchTerm
+          ? allTasks.filter((task) =>
+              task.description.toLowerCase().includes(searchTerm)
+            )
+          : [...allTasks];
+
+        currentPage = 1; // Reset to the first page
+        loadTasks();
+      }
+
+      function editTask(taskId) {
+        editingTaskId = taskId;
+        const taskToEdit = tasks.find((task) => task.id === taskId);
+        document.getElementById("taskInputModal").value =
+          taskToEdit.description;
+        document.getElementById("dateInputModal").value = taskToEdit.dueDate
+          ? new Date(taskToEdit.dueDate).toISOString().split("T")[0]
+          : "";
+        $("#taskModal").modal("show"); // モーダルを再表示
+      }
+
+      function deleteTask(taskId) {
+        fetch(`/tasks/${taskId}`, {
           method: "DELETE",
         })
           .then((response) => {
             if (!response.ok) {
               throw new Error("タスクの削除に失敗しました");
             }
-            tasks = tasks.filter((task) => task.id !== id);
+            tasks = tasks.filter((task) => task.id !== taskId);
             loadTasks();
           })
           .catch((error) => {
@@ -313,71 +392,24 @@
           });
       }
 
-      // タスクを検索する関数
-      function searchTasks() {
-        const searchTerm = document
-          .getElementById("searchInput")
-          .value.toLowerCase();
-        const taskDivs = taskList.getElementsByClassName("task");
-
-        for (const taskDiv of taskDivs) {
-          const taskDescription = taskDiv
-            .querySelector("span")
-            .innerText.toLowerCase();
-          taskDiv.style.display = taskDescription.includes(searchTerm)
-            ? "flex"
-            : "none";
-        }
+      function resetSearch() {
+        document.getElementById("searchInput").value = ""; // 検索ボックスを空にする
+        tasks = [...allTasks]; // 全タスクを表示
+        currentPage = 1; // ページをリセット
+        loadTasks(); // タスクを再読み込み
       }
 
-      // ダークモードを切り替える関数
-      function toggleDarkMode() {
-        document.body.classList.toggle("dark-mode");
-        const taskDivs = taskList.getElementsByClassName("task");
-
-        for (const taskDiv of taskDivs) {
-          taskDiv.classList.toggle("dark-mode");
-        }
-
-        const inputFields = document.querySelectorAll("input.form-control");
-        inputFields.forEach((input) => {
-          input.classList.toggle("dark-mode");
-        });
-      }
-
-      // タスクを読み込む関数
-      function loadTasks() {
-        taskList.innerHTML = "";
-
-        const startIndex = (currentPage - 1) * tasksPerPage;
-        const endIndex = startIndex + tasksPerPage;
-
-        const currentTasks = tasks.slice(startIndex, endIndex);
-
-        currentTasks.forEach((task) => {
-          displayTask(task);
-        });
-
-        const totalPages = Math.ceil(tasks.length / tasksPerPage);
-        renderPagination(totalPages);
-        updateCurrentPageIndicator();
-        updateTaskCount(); // タスク総数を更新
-      }
-
-      // 初期化
-      function initializeApp() {
-        fetch("/tasks")
-          .then((response) => response.json())
-          .then((data) => {
-            tasks = data;
-            loadTasks();
-          })
-          .catch((error) => {
-            console.error("Error:", error);
-          });
-      }
-
-      initializeApp();
+      // 初回ロード時にタスクを取得
+      fetch("/tasks")
+        .then((response) => response.json())
+        .then((data) => {
+          tasks = data;
+          loadTasks();
+        })
+        .catch((error) => console.error("Error:", error));
     </script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
   </body>
 </html>
