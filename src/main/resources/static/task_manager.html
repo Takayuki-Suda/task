@@ -77,6 +77,17 @@
         margin-top: 10px;
         font-size: 1.2rem;
       }
+      .task:hover {
+        background-color: #e2e6ea; /* ホバー時の背景色 */
+      }
+
+      .task-details {
+        display: none; /* 初期状態で非表示 */
+      }
+
+      .task:hover .task-details {
+        display: block; /* ホバー時に表示 */
+      }
     </style>
   </head>
   <body>
@@ -330,20 +341,26 @@
         const taskItem = document.createElement("div");
         taskItem.className = "task";
         taskItem.innerHTML = `
-        <div>
-            <strong>${task.id}: ${task.description}</strong> - ${
+    <div>
+        <strong>${task.id}: ${task.description}</strong> - ${
           task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "未設定"
         }
-        </div>
-        <div>
-            <button class="btn btn-success btn-sm" onclick="editTask(${
-              task.id
-            })">編集</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteTask(${
-              task.id
-            })">削除</button>
-        </div>
-    `;
+      <div class="task-details">
+        <p>タスクの詳細: ${task.description}</p>
+        <p>期限: ${
+          task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "未設定"
+        }</p>
+      </div>
+    </div>
+    <div>
+        <button class="btn btn-success btn-sm" onclick="editTask(${
+          task.id
+        })">編集</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTask(${
+          task.id
+        })">削除</button>
+    </div>
+  `;
         taskList.appendChild(taskItem);
       }
 
