@@ -44,7 +44,8 @@ public class TaskController {
     public ResponseEntity<Task> updateTask(@PathVariable int id, @RequestBody Task updatedTask) {
         for (Task task : tasks) {
             if (task.getId() == id) {
-                task.setDescription(updatedTask.getDescription());
+                task.setTitle(updatedTask.getTitle());
+                task.setDescription(updatedTask.getDescription()); // 説明の更新を追加
                 task.setCompleted(updatedTask.isCompleted());
                 task.setDueDate(updatedTask.getDueDate()); // 日付の更新を追加
                 try {
@@ -89,25 +90,24 @@ public class TaskController {
 
     // タスクをファイルからロードするメソッド
     private void loadTasks() {
-      try {
-          if (Files.exists(Paths.get(filePath))) {
-              System.out.println("Loading tasks from: " + filePath); // デバッグ用
-              String json = new String(Files.readAllBytes(Paths.get(filePath)));
-              Task[] taskArray = objectMapper.readValue(json, Task[].class);
-              for (Task task : taskArray) {
-                  tasks.add(task);
-                  System.out.println("Loaded task: " + task); // デバッグ用
-              }
-              // 次のIDを設定
-              nextId = tasks.isEmpty() ? 1 : tasks.get(tasks.size() - 1).getId() + 1;
-          } else {
-              System.out.println("File does not exist: " + filePath);
-              nextId = 1; // ファイルが存在しない場合はIDを1から開始
-          }
-      } catch (IOException e) {
-          System.err.println("Error loading tasks: " + e.getMessage());
-          e.printStackTrace();
-      }
-  }
-  
+        try {
+            if (Files.exists(Paths.get(filePath))) {
+                System.out.println("Loading tasks from: " + filePath); // デバッグ用
+                String json = new String(Files.readAllBytes(Paths.get(filePath)));
+                Task[] taskArray = objectMapper.readValue(json, Task[].class);
+                for (Task task : taskArray) {
+                    tasks.add(task);
+                    System.out.println("Loaded task: " + task); // デバッグ用
+                }
+                // 次のIDを設定
+                nextId = tasks.isEmpty() ? 1 : tasks.get(tasks.size() - 1).getId() + 1;
+            } else {
+                System.out.println("File does not exist: " + filePath);
+                nextId = 1; // ファイルが存在しない場合はIDを1から開始
+            }
+        } catch (IOException e) {
+            System.err.println("Error loading tasks: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 }

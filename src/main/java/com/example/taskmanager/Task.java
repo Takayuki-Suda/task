@@ -4,17 +4,19 @@ import java.util.Date;
 
 public class Task {
     private int id; // タスクID
+    private String title; // タスクのタイトル
     private String description; // タスクの説明
     private boolean completed; // タスクが完了したかどうか
     private Date dueDate; // タスクの期限
 
- // デフォルトコンストラクタ
+    // デフォルトコンストラクタ
     public Task() {
     }
 
     // コンストラクタ
-    public Task(int id, String description, boolean completed, Date dueDate) {
+    public Task(int id, String title, String description, boolean completed, Date dueDate) {
         this.id = id;
+        this.title = title;
         this.description = description;
         this.completed = completed;
         this.dueDate = dueDate;
@@ -27,6 +29,14 @@ public class Task {
 
     public void setId(int id) {
         this.id = id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
     }
 
     public String getDescription() {

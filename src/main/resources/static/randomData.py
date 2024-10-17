@@ -14,6 +14,7 @@ def generate_random_tasks(num_tasks=1000):#1000件のランダムデータを生
     for _ in range(num_tasks):
         task = {
             "id": _ + 1,
+            "title": generate_random_string(random.randint(1, 10)),  # ランダムな説明
             "description": generate_random_string(random.randint(1, 10)),  # ランダムな説明
             "completed": random.choice([True, False]),  # 完了状態
             "dueDate": random.choice([None, current_time + random.randint(0, 365 * 24 * 60 * 60 * 1000)])  # 未来の期日またはNone

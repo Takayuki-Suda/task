@@ -139,6 +139,15 @@
                 />
               </div>
               <div class="form-group">
+                <label for="detailsInputModal">タスクの詳細</label>
+                <textarea
+                  class="form-control"
+                  id="detailsInputModal"
+                  rows="3"
+                  placeholder="タスクの詳細を入力"
+                ></textarea>
+              </div>
+              <div class="form-group">
                 <label for="dateInputModal">日付</label>
                 <input type="date" class="form-control" id="dateInputModal" />
               </div>
@@ -266,12 +275,15 @@
       }
 
       function addTaskFromModal() {
-        const taskDescription = document
+        const taskTitle = document
           .getElementById("taskInputModal")
+          .value.trim();
+        const taskDescription = document
+          .getElementById("detailsInputModal")
           .value.trim();
         const taskDate = document.getElementById("dateInputModal").value;
 
-        if (taskDescription) {
+        if (taskTitle) {
           if (editingTaskId) {
             // 編集の場合
             fetch(`/tasks/${editingTaskId}`, {
@@ -280,7 +292,8 @@
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                description: taskDescription,
+                title: taskTitle,
+                description: taskDescription, // ここでdescriptionを追加
                 dueDate: taskDate,
               }),
             })
@@ -310,7 +323,8 @@
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                description: taskDescription,
+                title: taskTitle,
+                description: taskDescription, // ここでdescriptionを追加
                 dueDate: taskDate,
                 completed: false,
               }),
@@ -342,7 +356,7 @@
         taskItem.className = "task";
         taskItem.innerHTML = `
     <div>
-        <strong>${task.id}: ${task.description}</strong> - ${
+        <strong>${task.id}: ${task.title}</strong> - ${
           task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "未設定"
         }
       <div class="task-details">
@@ -409,12 +423,19 @@
         const searchTerm = document
           .getElementById("searchInput")
           .value.toLowerCase();
+        console.log("検索ワード:", searchTerm); // 検索ワードをログ出力
 
         // 検索ボックスが空の場合は元のタスクリストを使用
         tasks = searchTerm
-          ? allTasks.filter((task) =>
-              task.description.toLowerCase().includes(searchTerm)
-            )
+          ? allTasks.filter((task) => {
+              if (task.title) {
+                // task.titleが存在する場合のみチェック
+                const includes = task.title.toLowerCase().includes(searchTerm);
+                console.log(`タスク: ${task.title}, 検索結果: ${includes}`);
+                return includes;
+              }
+              return false; // titleが存在しないタスクはフィルタリング
+            })
           : [...allTasks];
 
         currentPage = 1; // Reset to the first page
@@ -424,11 +445,12 @@
       function editTask(taskId) {
         editingTaskId = taskId;
         const taskToEdit = allTasks.find((task) => task.id === taskId);
-        document.getElementById("taskInputModal").value =
-          taskToEdit.description;
+        document.getElementById("taskInputModal").value = taskToEdit.title;
         document.getElementById("dateInputModal").value = taskToEdit.dueDate
           ? new Date(taskToEdit.dueDate).toISOString().split("T")[0]
           : "";
+        document.getElementById("detailsInputModal").value =
+          taskToEdit.description;
 
         // モーダルのタイトルを編集に変更
         document.getElementById("taskModalLabel").innerText = "タスクを編集";
@@ -439,6 +461,7 @@
 
       function clearModalFields() {
         document.getElementById("taskInputModal").value = ""; // タスク名をクリア
+        document.getElementById("detailsInputModal").value = ""; // descriptionをクリア
         document.getElementById("dateInputModal").value = ""; // 日付をクリア
         editingTaskId = null; // 編集モードをリセット
 
@@ -474,6 +497,7 @@
 
       function clearModalFields() {
         document.getElementById("taskInputModal").value = ""; // タスク名をクリア
+        document.getElementById("detailsInputModal").value = ""; // descriptionをクリア
         document.getElementById("dateInputModal").value = ""; // 日付をクリア
         editingTaskId = null; // 編集モードをリセット
 
