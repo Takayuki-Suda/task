@@ -275,11 +275,14 @@
               if (!response.ok) {
                 throw new Error("タスクの追加に失敗しました");
               }
-              return response.json();
+              // 新しいタスクを追加した後に全タスクを再取得
+              return fetch("/tasks");
             })
-            .then((task) => {
-              tasks.push(task);
-              loadTasks();
+            .then((response) => response.json())
+            .then((data) => {
+              tasks = data; // すべてのタスクで更新
+              allTasks = [...data]; // allTasksも更新
+              loadTasks(); // タスクリストを再描画
               document.getElementById("taskInputModal").value = "";
               document.getElementById("dateInputModal").value = "";
               $("#taskModal").modal("hide"); // モーダルを閉じる
