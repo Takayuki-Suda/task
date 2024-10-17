@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>タスク管理アプリ</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f8f9fa;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .task {
+        display: flex;
+        justify-content: space-between;
+        margin: 5px 0;
+        padding: 10px;
+        border: 1px solid #ced4da;
+        border-radius: 5px;
+        background-color: #ffffff;
+      }
+      .task button {
+        margin-left: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>タスク管理アプリ</h1>
+      <div class="input-group mb-3">
+        <input
+          type="text"
+          id="taskInput"
+          class="form-control"
+          placeholder="新しいタスクを入力"
+        />
+        <div class="input-group-append">
+          <button class="btn btn-primary" onclick="addTask()">
+            タスクを追加
+          </button>
+        </div>
+      </div>
+
+      <h2>タスク一覧</h2>
+      <div id="taskList" class="list-group"></div>
+    </div>
+
+    <script>
+      const taskList = document.getElementById("taskList");
+
+      // タスクを追加する関数
+      function addTask() {
+        const taskInput = document.getElementById("taskInput");
+        const taskDescription = taskInput.value;
+
+        if (taskDescription) {
+          fetch("/tasks", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              description: taskDescription,
+              completed: false,
+            }),
+          })
+            .then((response) => response.json())
+            .then((task) => {
+              displayTask(task);
+              taskInput.value = ""; // 入力フィールドをクリア
+            });
+        }
+      }
+
+      // タスクを表示する関数
+      function displayTask(task) {
+        const taskDiv = document.createElement("div");
+        taskDiv.classList.add("task", "list-group-item");
+        taskDiv.innerHTML = `
+                <span>${task.description}</span>
+                <button class="btn btn-danger btn-sm" onclick="deleteTask(${task.id})">削除</button>
+            `;
+        taskList.appendChild(taskDiv);
+      }
+
+      // タスクを削除する関数
+      function deleteTask(id) {
+        fetch(`/tasks/${id}`, {
+          method: "DELETE",
+        }).then(() => {
+          // タスク一覧を再取得して表示
+          fetch("/tasks")
+            .then((response) => response.json())
+            .then((tasks) => {
+              // タスク一覧をクリア
+              taskList.innerHTML = "";
+              // 再度タスクを表示
+              tasks.forEach((task) => displayTask(task));
+            });
+        });
+      }
+
+      // ページ読み込み時に全タスクを取得
+      window.onload = function () {
+        fetch("/tasks")
+          .then((response) => response.json())
+          .then((tasks) => {
+            tasks.forEach((task) => displayTask(task));
+          });
+      };
+    </script>
+  </body>
+</html>

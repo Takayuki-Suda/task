@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>タスク管理アプリ</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f8f9fa;
+        transition: background-color 0.3s, color 0.3s;
+      }
+      body.dark-mode {
+        background-color: #343a40;
+        color: #f8f9fa;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .task {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 5px 0;
+        padding: 10px;
+        border: 1px solid #ced4da;
+        border-radius: 5px;
+        background-color: #ffffff;
+        transition: background-color 0.3s, border-color 0.3s;
+      }
+      .task.dark-mode {
+        background-color: #495057;
+        border-color: #ced4da;
+      }
+      .task button {
+        margin-left: 10px;
+      }
+      .input-group-append {
+        flex-grow: 1;
+      }
+
+      .btn-sm {
+        font-size: 0.9rem;
+      }
+      #addButton,
+      #search {
+        min-width: 120px;
+      }
+
+      input.form-control {
+        transition: background-color 0.3s, color 0.3s;
+      }
+      input.form-control.dark-mode {
+        background-color: #495057;
+        color: #f8f9fa;
+      }
+      .pagination {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+      }
+      .pagination button {
+        margin: 0 5px;
+      }
+      .current-page {
+        text-align: center;
+        margin-top: 10px;
+      }
+      .task-count {
+        text-align: center;
+        margin-top: 10px;
+        font-size: 1.2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>タスク管理アプリ</h1>
+
+      <!-- ダークモード切替ボタン -->
+      <button
+        class="btn btn-secondary mb-3"
+        id="toggleButton"
+        onclick="toggleDarkMode()"
+      >
+        ダークモード
+      </button>
+
+      <!-- 検索ボックス -->
+      <div class="input-group mb-3">
+        <input
+          type="text"
+          id="searchInput"
+          class="form-control"
+          placeholder="タスクを検索"
+          oninput="searchTasks()"
+          style="width: 34%"
+        />
+        <div class="input-group-append">
+          <button
+            class="btn btn-primary mx-2"
+            id="search"
+            onclick="searchTasks()"
+          >
+            検索する
+          </button>
+        </div>
+      </div>
+
+      <!-- タスク追加ボックス -->
+      <div class="input-group mb-3">
+        <input
+          type="text"
+          id="taskInput"
+          class="form-control"
+          placeholder="新しいタスクを入力"
+        />
+        <input type="date" id="dateInput" class="form-control mx-2" />
+        <div class="input-group-append">
+          <button class="btn btn-primary" id="addButton" onclick="addTask()">
+            タスクを追加
+          </button>
+        </div>
+      </div>
+
+      <h2>タスク一覧</h2>
+      <div id="taskList" class="list-group"></div>
+
+      <!-- ページ番号表示 -->
+      <div class="pagination" id="pagination"></div>
+      <div class="current-page" id="currentPageIndicator"></div>
+      <!-- タスクの総数を表示する要素 -->
+      <div class="task-count" id="taskCount"></div>
+    </div>
+
+    <script>
+      const taskList = document.getElementById("taskList");
+      const taskInput = document.getElementById("taskInput");
+      const dateInput = document.getElementById("dateInput");
+      const pagination = document.getElementById("pagination");
+      const currentPageIndicator = document.getElementById(
+        "currentPageIndicator"
+      );
+      const taskCount = document.getElementById("taskCount"); // タスク総数を表示する要素
+      let tasks = []; // 全タスクを保持する配列
+      let currentPage = 1;
+      const tasksPerPage = 4; // 1ページに表示するタスク数
+
+      let editingTaskId = null; // 編集中のタスクID
+
+      // ページネーションを表示する関数
+      function renderPagination(totalPages) {
+        pagination.innerHTML = "";
+        const maxVisiblePages = 5; // 最大表示ページ数
+
+        // 最初のページボタン
+        const firstButton = document.createElement("button");
+        firstButton.innerText = "«";
+        firstButton.classList.add("btn", "btn-outline-primary");
+        firstButton.onclick = () => changePage(1);
+        pagination.appendChild(firstButton);
+
+        // 中間のページボタン
+        const startPage = Math.max(
+          1,
+          currentPage - Math.floor(maxVisiblePages / 2)
+        );
+        const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+        for (let i = startPage; i <= endPage; i++) {
+          const button = document.createElement("button");
+          button.innerText = i;
+          button.classList.add("btn", "btn-outline-primary");
+          button.onclick = () => changePage(i);
+          if (i === currentPage) {
+            button.classList.add("active");
+          }
+          pagination.appendChild(button);
+        }
+
+        // 最後のページボタン
+        const lastButton = document.createElement("button");
+        lastButton.innerText = "»";
+        lastButton.classList.add("btn", "btn-outline-primary");
+        lastButton.onclick = () => changePage(totalPages);
+        pagination.appendChild(lastButton);
+      }
+
+      // 現在のページを表示する関数
+      function updateCurrentPageIndicator() {
+        currentPageIndicator.innerText = `現在のページ：${currentPage}`;
+      }
+
+      // タスク総数を表示する関数
+      function updateTaskCount() {
+        taskCount.innerText = `タスクの総数：${tasks.length}件`;
+      }
+
+      // ページを変更する関数
+      function changePage(page) {
+        currentPage = page;
+        loadTasks();
+      }
+
+      // タスクを追加または更新する関数
+      function addTask() {
+        const taskDescription = taskInput.value.trim(); // 空白を除去
+        const taskDate = dateInput.value; // 日付を取得
+
+        if (taskDescription) {
+          const method = editingTaskId ? "PUT" : "POST"; // 編集中かどうかでメソッドを切り替え
+          const url = editingTaskId ? `/tasks/${editingTaskId}` : "/tasks";
+
+          fetch(url, {
+            method: method,
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              description: taskDescription,
+              dueDate: taskDate,
+              completed: false,
+            }),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("タスクの更新に失敗しました");
+              }
+              return response.json();
+            })
+            .then((task) => {
+              if (editingTaskId) {
+                updateTaskInList(task);
+                editingTaskId = null;
+              } else {
+                tasks.push(task); // 新規タスクを全タスクに追加
+                loadTasks();
+              }
+              taskInput.value = "";
+              dateInput.value = "";
+              document.getElementById("addButton").innerText = "タスクを追加";
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              alert(error.message);
+            });
+        }
+      }
+
+      // タスクを表示する関数
+      function displayTask(task) {
+        const taskDiv = document.createElement("div");
+        taskDiv.classList.add("task", "list-group-item");
+        taskDiv.setAttribute("data-id", task.id);
+        taskDiv.innerHTML = `
+          <span>${task.description} - ${
+          task.dueDate
+            ? new Date(task.dueDate).toLocaleDateString()
+            : "日付未設定"
+        }</span>
+          <div>
+              <button class="btn btn-warning btn-sm" onclick="editTask(${
+                task.id
+              }, '${task.description}', '${task.dueDate}')">編集</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteTask(${
+                task.id
+              })">削除</button>
+          </div>
+        `;
+        taskList.appendChild(taskDiv);
+      }
+
+      // タスクを更新する関数
+      function updateTaskInList(task) {
+        const taskDiv = taskList.querySelector(`.task[data-id='${task.id}']`);
+        if (taskDiv) {
+          taskDiv.querySelector("span").innerText = `${task.description} - ${
+            task.dueDate
+              ? new Date(task.dueDate).toLocaleDateString()
+              : "日付未設定"
+          }`; // 更新された内容を表示
+        }
+      }
+
+      // タスクを編集する関数
+      function editTask(id, description, dueDate) {
+        editingTaskId = id;
+        taskInput.value = description;
+        dateInput.value = dueDate;
+        document.getElementById("addButton").innerText = "タスクを更新";
+      }
+
+      // タスクを削除する関数
+      function deleteTask(id) {
+        fetch(`/tasks/${id}`, {
+          method: "DELETE",
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("タスクの削除に失敗しました");
+            }
+            tasks = tasks.filter((task) => task.id !== id);
+            loadTasks();
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            alert(error.message);
+          });
+      }
+
+      // タスクを検索する関数
+      function searchTasks() {
+        const searchTerm = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+        const taskDivs = taskList.getElementsByClassName("task");
+
+        for (const taskDiv of taskDivs) {
+          const taskDescription = taskDiv
+            .querySelector("span")
+            .innerText.toLowerCase();
+          taskDiv.style.display = taskDescription.includes(searchTerm)
+            ? "flex"
+            : "none";
+        }
+      }
+
+      // ダークモードを切り替える関数
+      function toggleDarkMode() {
+        document.body.classList.toggle("dark-mode");
+        const taskDivs = taskList.getElementsByClassName("task");
+
+        for (const taskDiv of taskDivs) {
+          taskDiv.classList.toggle("dark-mode");
+        }
+
+        const inputFields = document.querySelectorAll("input.form-control");
+        inputFields.forEach((input) => {
+          input.classList.toggle("dark-mode");
+        });
+      }
+
+      // タスクを読み込む関数
+      function loadTasks() {
+        taskList.innerHTML = "";
+
+        const startIndex = (currentPage - 1) * tasksPerPage;
+        const endIndex = startIndex + tasksPerPage;
+
+        const currentTasks = tasks.slice(startIndex, endIndex);
+
+        currentTasks.forEach((task) => {
+          displayTask(task);
+        });
+
+        const totalPages = Math.ceil(tasks.length / tasksPerPage);
+        renderPagination(totalPages);
+        updateCurrentPageIndicator();
+        updateTaskCount(); // タスク総数を更新
+      }
+
+      // 初期化
+      function initializeApp() {
+        fetch("/tasks")
+          .then((response) => response.json())
+          .then((data) => {
+            tasks = data;
+            loadTasks();
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+          });
+      }
+
+      initializeApp();
+    </script>
+  </body>
+</html>
