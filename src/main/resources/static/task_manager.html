@@ -89,6 +89,7 @@
         id="newTaskButton"
         data-toggle="modal"
         data-target="#taskModal"
+        onclick="clearModalFields()"
       >
         新規作成
       </button>
@@ -405,6 +406,12 @@
         tasks = [...allTasks]; // 全タスクを表示
         currentPage = 1; // ページをリセット
         loadTasks(); // タスクを再読み込み
+      }
+
+      function clearModalFields() {
+        document.getElementById("taskInputModal").value = ""; // タスク名をクリア
+        document.getElementById("dateInputModal").value = ""; // 日付をクリア
+        editingTaskId = null; // 編集モードをリセット
       }
 
       // 初回ロード時にタスクを取得
