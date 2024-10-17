@@ -261,37 +261,68 @@
         const taskDate = document.getElementById("dateInputModal").value;
 
         if (taskDescription) {
-          fetch("/tasks", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              description: taskDescription,
-              dueDate: taskDate,
-              completed: false,
-            }),
-          })
-            .then((response) => {
-              if (!response.ok) {
-                throw new Error("タスクの追加に失敗しました");
-              }
-              // 新しいタスクを追加した後に全タスクを再取得
-              return fetch("/tasks");
+          if (editingTaskId) {
+            // 編集の場合
+            fetch(`/tasks/${editingTaskId}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                description: taskDescription,
+                dueDate: taskDate,
+              }),
             })
-            .then((response) => response.json())
-            .then((data) => {
-              tasks = data; // すべてのタスクで更新
-              allTasks = [...data]; // allTasksも更新
-              loadTasks(); // タスクリストを再描画
-              document.getElementById("taskInputModal").value = "";
-              document.getElementById("dateInputModal").value = "";
-              $("#taskModal").modal("hide"); // モーダルを閉じる
+              .then((response) => {
+                if (!response.ok) {
+                  throw new Error("タスクの編集に失敗しました");
+                }
+                return fetch("/tasks");
+              })
+              .then((response) => response.json())
+              .then((data) => {
+                tasks = data; // すべてのタスクで更新
+                allTasks = [...data]; // allTasksも更新
+                loadTasks(); // タスクリストを再描画
+                clearModalFields(); // モーダルのフィールドをクリア
+                $("#taskModal").modal("hide"); // モーダルを閉じる
+              })
+              .catch((error) => {
+                console.error("Error:", error);
+                alert(error.message);
+              });
+          } else {
+            // 新規作成の場合
+            fetch("/tasks", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                description: taskDescription,
+                dueDate: taskDate,
+                completed: false,
+              }),
             })
-            .catch((error) => {
-              console.error("Error:", error);
-              alert(error.message);
-            });
+              .then((response) => {
+                if (!response.ok) {
+                  throw new Error("タスクの追加に失敗しました");
+                }
+                return fetch("/tasks");
+              })
+              .then((response) => response.json())
+              .then((data) => {
+                tasks = data; // すべてのタスクで更新
+                allTasks = [...data]; // allTasksも更新
+                loadTasks(); // タスクリストを再描画
+                clearModalFields(); // モーダルのフィールドをクリア
+                $("#taskModal").modal("hide"); // モーダルを閉じる
+              })
+              .catch((error) => {
+                console.error("Error:", error);
+                alert(error.message);
+              });
+          }
         }
       }
 
@@ -375,13 +406,29 @@
 
       function editTask(taskId) {
         editingTaskId = taskId;
-        const taskToEdit = tasks.find((task) => task.id === taskId);
+        const taskToEdit = allTasks.find((task) => task.id === taskId);
         document.getElementById("taskInputModal").value =
           taskToEdit.description;
         document.getElementById("dateInputModal").value = taskToEdit.dueDate
           ? new Date(taskToEdit.dueDate).toISOString().split("T")[0]
           : "";
+
+        // モーダルのタイトルを編集に変更
+        document.getElementById("taskModalLabel").innerText = "タスクを編集";
+        document.getElementById("addTaskButton").innerText = "タスクを編集"; // ボタンのテキストを編集用に変更
+
         $("#taskModal").modal("show"); // モーダルを再表示
+      }
+
+      function clearModalFields() {
+        document.getElementById("taskInputModal").value = ""; // タスク名をクリア
+        document.getElementById("dateInputModal").value = ""; // 日付をクリア
+        editingTaskId = null; // 編集モードをリセット
+
+        // モーダルのタイトルとボタンのテキストを元に戻す
+        document.getElementById("taskModalLabel").innerText =
+          "新しいタスクを追加"; // タイトルを元に戻す
+        document.getElementById("addTaskButton").innerText = "タスクを追加"; // ボタンのテキストを元に戻す
       }
 
       function deleteTask(taskId) {
@@ -412,6 +459,11 @@
         document.getElementById("taskInputModal").value = ""; // タスク名をクリア
         document.getElementById("dateInputModal").value = ""; // 日付をクリア
         editingTaskId = null; // 編集モードをリセット
+
+        // モーダルのタイトルとボタンのテキストを元に戻す
+        document.getElementById("taskModalLabel").innerText =
+          "新しいタスクを追加"; // タイトルを元に戻す
+        document.getElementById("addTaskButton").innerText = "タスクを追加"; // ボタンのテキストを元に戻す
       }
 
       // 初回ロード時にタスクを取得
