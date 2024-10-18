@@ -80,7 +80,6 @@
       .task:hover {
         background-color: #e2e6ea; /* ホバー時の背景色 */
       }
-
       .task-details {
         display: none; /* 初期状態で非表示 */
       }
@@ -359,12 +358,15 @@
         <strong>${task.id}: ${task.title}</strong> - ${
           task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "未設定"
         }
-      <div class="task-details">
-        <p>タスクの詳細: ${task.description}</p>
-        <p>期限: ${
-          task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "未設定"
-        }</p>
-      </div>
+        <i class="toggle-details-icon" style="cursor:pointer;">&#x25BC;</i>
+        <div class="task-details" style="display: none;"> <!-- 初期状態で非表示 -->
+            <p>タスクの詳細: ${task.description}</p>
+            <p>期限: ${
+              task.dueDate
+                ? new Date(task.dueDate).toLocaleDateString()
+                : "未設定"
+            }</p>
+        </div>
     </div>
     <div>
         <button class="btn btn-success btn-sm" onclick="editTask(${
@@ -377,6 +379,21 @@
   `;
         taskList.appendChild(taskItem);
       }
+
+      document
+        .getElementById("taskList")
+        .addEventListener("click", function (event) {
+          if (event.target.classList.contains("toggle-details-icon")) {
+            const details = event.target.nextElementSibling;
+            if (details.style.display === "none" || !details.style.display) {
+              details.style.display = "block";
+              event.target.innerHTML = "&#x25B2;"; // 上向き矢印
+            } else {
+              details.style.display = "none";
+              event.target.innerHTML = "&#x25BC;"; // 下向き矢印
+            }
+          }
+        });
 
       function loadTasks() {
         taskList.innerHTML = "";
